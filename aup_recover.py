@@ -80,13 +80,19 @@ def add_wavetrack(f_aup, filepath_list, channel, linked, other_channel_filepath_
   f_aup.write(get_sequence_wavetrack_stop())
   
 def create_aup(dir, projname):
+  aup_path = os.path.join(dir, projname + ".aup")
+  if os.path.exists(aup_path):
+    print "File already exists:", aup_path
+    print "I will not overwrite it, please rename (backup) the existing aup file first"
+    return
+    
   data_dir = os.path.join(dir, projname + "_data")
   filepath_list = glob.glob(os.path.join(data_dir, "e*", "d*", "*.au"))
   sorted_filepath_list = sorted(filepath_list, key = get_last_write_time)
   even_filepath_list = sorted_filepath_list[0::2]
   odd_filepath_list = sorted_filepath_list[1::2]
 
-  f_aup = open(os.path.join(dir, projname + ".aup"), "wb")
+  f_aup = open(aup_path, "wb")
   f_aup.write(get_aup_start(projname))
   
   add_wavetrack(f_aup, even_filepath_list, channel = 0, linked = 1, other_channel_filepath_list = odd_filepath_list)
@@ -95,3 +101,55 @@ def create_aup(dir, projname):
   f_aup.write("</project>\n")
   f_aup.close()
 
+  
+def main():
+  dir = os.curdir
+  path = os.path.abspath(dir)
+  print "Your Audacity .au files should be in a directory structure like this:"
+  print "  <basepath>/<projname>_data/e*/d*/*.au"
+  print
+  print "The current directory =", path
+  print
+  print "Please enter <basepath>. If it is the current directory, just press enter."
+  dir = raw_input(": ")
+  path = os.path.abspath(dir)
+  projlist = glob.glob(os.path.join(path, "*_data"))
+
+  print
+  if len(projlist) == 0:
+    print "No projects found in", path
+    return
+    
+  print "Found %d projects, please select one" % len(projlist)
+  for i, projname in enumerate(projlist):
+    print "%3d = %s" % (i + 1, projname)
+  print "  X = cancel"
+  choice = raw_input(": ")
+  
+  if choice.lower() == "x":
+    print "stopping"
+    return
+  
+  try:
+    choice_i = int(choice) - 1
+  except ValueError:
+    choice_i = -1
+  
+  if not(0 <= choice_i < len(projlist)):
+    print "Invallid project chosen"
+    print "stopping"
+    return
+  
+  data_path = projlist[choice_i]
+  data_base = os.path.basename(data_path)
+  proj_name = data_base[:-5]
+  print
+  print "Running create_aup() with these 2 arguments:"
+  print "  directory =", path
+  print "  project   =", proj_name
+  
+  create_aup(path, proj_name)
+    
+  
+if __name__ == "__main__":
+  main()
